@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div>ifr1</div>
+
+    <script>
+
+        window.onload = function () {
+
+            console.log("ifr1: onload");
+            window.parent.postMessage({
+                type: "getInit",
+                data: {
+                    JJUid: 1456
+                }
+            }, "*")
+        };
+
+        window.addEventListener("message", (ev) => {
+            console.log("ifr1: receive message", ev.data);
+        });
+
+        setTimeout(() => {
+            window.parent.postMessage({
+                type: "getInit",
+                data: {
+                    JJUid: 1456
+                }
+            }, "*")
+
+        }, 3000)
+
+
+    </script>
+</body>
+
+</html>

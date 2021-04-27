@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        iframe {
+            width: 30%;
+            height: 200px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div>
+        <iframe src="./ifr1.html"></iframe>
+        <iframe src="./ifr2.html"></iframe>
+    </div>
+
+    <script>
+
+
+        // 1. 过滤origin, 可同时订阅多个origin
+        // 2. 传递了source，可以直接调用
+        // 3. 
+
+        function parseData(data) {
+            if (data == null) {
+                return data;
+            }
+
+            if (typeof data === "object" && data !== null) {
+                return data;
+            }
+            return JSON.parse(data);
+        }
+
+
+        window.addEventListener("message", onMessage, false);
+
+        let listenersMap = new Map();
+        function onMessage(e) {
+
+            const data = parseData(e.data);
+            console.log("index: onMessage", e.data);
+
+            if (!data.type) {
+                return console.warn("data must have type property");
+            }
+
+            const listeners = getListeners(data.type, e.origin);
+
+            if (!Array.isArray(listeners)) {
+                return console.warn(`${origin} 没有注册监听函数`);
+            }
+
+            dispatchMSEvent(listeners, e.data, e.source, e.origin);
+        }
+
+        // 获取map的多个值
+        function getMulti(map, keys = []) {
+            const results = [];
+            keys.forEach(k => {
+                const val = map.get(k);
+                results.push(val);
+            });
+            return results;
+        }
+
+        // 扁平化数组
+        function flatArray(arr, map = v => v) {
+            return arr.reduce((val, cur) => {
+                const v = map(cur);
+                val.push(...v);
+                return val;
+            }, [])
+        }
+
+        function getListeners(type, origin) {
+            const typeArrs = getMulti(listenersMap, [type]).filter(v => v != undefined);
+            const listeners = flatArray(typeArrs).filter(l => l.origin.indexOf("*") >= 0 || l.origin.indexOf(origin) >= 0);
+            return listeners;
+        }
+
+        function dispatchMSEvent(listeners, { type, data }, source, origin) {
+            let listener;
+            for (let i = 0; i <= listeners.length - 1; i++) {
+                listener = listeners[i];
+                listener.fn.apply(null, [data, source, origin])
+            }
+        }
+
+        function subscribe(type, fn, origin = "*") {
+            let listeners = listenersMap.get(type);
+            if (!listeners) {
+                listeners = [];
+                listenersMap.set(type, listeners);
+            }
+            listeners.push({
+                fn,
+                type,
+                origin
+            });
+
+            return () => unSubsribe(type, fn, origin);
+        }
+
+        function unSubsribe(type, fn, origin = "*") {
+
+            const listeners = listenersMap.get(type);
+            if (!listeners) {
+                return;
+            }
+            let index = listeners.findIndex(l => l.fn === fn && l.origin === origin);
+            if (index < 0) {
+                return;
+            }
+            listeners.splice(index, 1);
+        }
+
+        function createMC(origin = "*") {
+
+            function on(type, fn) {
+                return subscribe(type, fn, origin)
+            }
+
+            function off(type, fn) {
+                return unSubsribe(type, fn, origin)
+            }
+
+            return {
+                on,
+                off
+            }
+        }
+
+
+    </script>
+
+    <script>
+
+        const mcc = createMC(["http://127.0.0.1:5500"]);
+
+        mcc.on("getInit", (data, source, origin) => {
+            console.log("index:getInit ", data, source, origin);
+        });
+
+
+       const unsub =  mcc.on("getInit", getInit2);
+
+        function getInit2(data, source, origin) {
+            console.log("index:getInit2 ", data, source, origin);
+            // mcc.off("getInit", getInit2)
+            unsub();
+        };
+
+
+    </script>
+</body>
+
+</html>
