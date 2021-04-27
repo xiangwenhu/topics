@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+
+    <!-- common script -->
+    <script>
+        function sleep(duration = 1000) {
+            return new Promise(resolve => {
+                setTimeout(resolve, duration)
+            });
+        }
+
+        const R_URL = "http://localhost:9001/getDatas";
+    </script>
+
+    <!-- simple cancel -->
+    <!-- <script>
+
+        const controller = new AbortController();
+
+        fetch(R_URL, {
+            signal: controller.signal
+        }).then(res => console.log("res1", res)).catch(err => {
+            console.log("err: res1", err)
+        });
+
+        setTimeout(() => {
+            console.log("cancel request 1");
+            controller.abort();
+            fetch(R_URL).then(res => console.log("res2", res)).catch(err => {
+                console.log("err: res2", err)
+            })
+        },  1200);
+
+
+    </script> -->
+
+
+    <!-- AFetch -->
+    <script>
+
+        function AFetch(url, opts) {
+            const controller = new AbortController();
+            const signal = controller.signal;
+
+            return {
+                abort: () => controller && controller.abort(),
+                request: () => fetch(url, { ...opts, signal }).catch(err => {
+                    controller = null;
+                    throw new err;
+                })
+            };
+        }
+
+        const { request, abort } = new AFetch(R_URL);
+
+        request();
+
+        setTimeout(() => {
+            console.log("cancel request 1");
+            abort();
+            fetch(R_URL).then(res => console.log("res2", res)).catch(err => {
+                console.log("err: res2", err)
+            })
+        }, 1200);
+
+
+    </script>
+
+
+</body>
+
+</html>
